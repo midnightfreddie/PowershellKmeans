@@ -11,7 +11,7 @@ Add-Type -Path $MlDllPath
 
 $KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList 3
 
-#[double[]]
+# Casting to [double[][]] as in example not needed and possibly was flattening the array
 $Observations = @(
     @(-5, -2, -1),
     @(-5, -5, -6),
@@ -28,26 +28,7 @@ $Observations = @(
 
 $Labels -join ", "
 
-#[double[][]]$New = @(,@( 4, 1, 9))
-$New =  @(
-    @(-5, -2, -1)
-    @(-5, -5, -6)
-    @( 2,  1,  1)
-    @( 1,  1,  2)
-    @( 1,  2,  2)
-    @( 3,  1,  2)
-    @(11,  5,  4)
-    @(15,  5,  6)
-    @(10,  5,  6)
-)
-$New = @(
-#    @(5, 2, 3)
-    @( 4, 1, 9)
-)
-$New = @(@(5, 2, 3), @( 4, 1, 9))
-
-# Ugh. Trying to find <Tinput> class which Decide() seems to want
-# [Accord.MachineLearning.MulticlassScoreClassifierBase]
-
+# Note use of @(,) format to ensure 2d array, or that @(4,1,9) vector is one value to pass
+$New = @(,@( 4, 1, 9))
 
 $KMeans.Clusters.Nearest( $New )
