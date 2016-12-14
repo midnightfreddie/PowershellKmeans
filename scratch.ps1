@@ -10,30 +10,23 @@ Add-Type -Path $MlDllPath
 
 $KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList 3
 
-[double[]]$Observations = @(
-    @(-5, -2, -1)
-    @(-5, -5, -6)
-    @( 2,  1,  1)
-    @( 1,  1,  2)
-    @( 1,  2,  2)
-    @( 3,  1,  2)
-    @(11,  5,  4)
-    @(15,  5,  6)
+$Observations = @(
+    @(-5, -2, -1),
+    @(-5, -5, -6),
+    @( 2,  1,  1),
+    @( 1,  1,  2),
+    @( 1,  2,  2),
+    @( 3,  1,  2),
+    @(11,  5,  4),
+    @(15,  5,  6),
     @(10,  5,  6)
 )
 
-# Example uses Compute(), but docs say obsolete and use Learn() instead
-#[int[]]$Labels = $KMeans.Compute($Observations)
-$Labels = $KMeans.Learn($Observations)
+# This throws an error but otherwise seems to work.
+# I think the error might be in enumerating the output to PS which would leave the actual clustering operations intact.
+$KMeans.Learn($Observations)
 
-# This doesn't work with the output of Learn()
-# $Labels -join ", "
-
-[double[]]$New = @( 4, 1, 9)
-
-# Ugh. Trying to find <Tinput> class which Decide() seems to want
-# [Accord.MachineLearning.MulticlassScoreClassifierBase]
-
+$New = @(, @( 4, 1, 9) )
 
 # Example uses Nearest(), but docs say obsolete and use Decide() instead
-# $KMeans.Clusters.Decide( $New )
+$KMeans.Clusters.Decide( $New )
