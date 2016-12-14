@@ -27,11 +27,10 @@ $KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList 3
 
 $Labels -join ", "
 
-[double[]]$New = @( 4, 1, 9)
+[double[][]]$New = @(,@( 4, 1, 9))
 
 # Ugh. Trying to find <Tinput> class which Decide() seems to want
 # [Accord.MachineLearning.MulticlassScoreClassifierBase]
 
 
-# Example uses Nearest(), but docs say obsolete and use Decide() instead
-# $KMeans.Clusters.Decide( $New )
+$KMeans.Clusters.Nearest( $New )
