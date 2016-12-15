@@ -1,7 +1,7 @@
 # Attempting to cluster/classify text posts
 param (
     $AccordPath = "C:\tools\Accord.NET-3.3.0-libsonly\Release\net45",
-    $Clusters = 4
+    $Clusters = 10
 )
 
 <#
@@ -86,15 +86,16 @@ function Get-TfIdf {
 $MlDllPath = "$AccordPath\Accord.MachineLearning.dll"
 Add-Type -Path $MlDllPath
 
-$KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList $Clusters
-
-$Json = Get-Content C:\temp\kmeanstest.json |
+$Json = Get-Content -Encoding UTF8 C:\temp\kmeanstest.json |
     ConvertFrom-Json
 
 # $Json | select id, @{ Name = "body"; Expression = { $PSItem.data.body } }
 
 #$Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
-$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.body })
+#$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.body })
+$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.link_title })
+Write-Host Yo
+$KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList $Clusters
 
 # This throws an error, but I think it's erroring out on converting data to output to Powershell; I think the functionality is working
 $KMeans.Learn($Vectors)
@@ -106,14 +107,19 @@ for ($i = 0; $i -lt $Vectors.Count; $i++) {
     $Out.Add((
         New-Object psobject -Property @{
             Cluster = $Labels[$i]
-            Text = $Json[$i].data.body
+            #Text = $Json[$i].data.body
+            Text = $Json[$i].data.link_title
         }
     )) | Out-Null
 }
 
-for ($i = 0; $i -lt $Clusters; $i++) { 
-    "`n=== CLUSTER $i ===`n"
-    $Out |
-        Where-Object { $PSItem.Cluster -eq $i } |
-        Select-Object -ExpandProperty Text
-}
+# for ($i = 0; $i -lt $Clusters; $i++) { 
+#     "`n=== CLUSTER $i ===`n"
+#     $Out |
+#         Where-Object { $PSItem.Cluster -eq $i } |
+#         Select-Object -ExpandProperty Text
+# }
+
+$Out | Group-Object -Property Cluster | Sort-Object -Descending -Property Count
+
+# NOTE: I've been running this in ISE and exploring the variable values left over from executing in the live runspace in addition to the script output.
