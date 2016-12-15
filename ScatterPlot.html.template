@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <title>Scatter Plot</title>
+    </head>
+    <body>
+        <div id="chart"></div>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script>
+        (function(){
+            var zoom = 6
+            var width = 100 * zoom
+            var height = 100 * zoom
+            var colors = ["red", "green", "blue", "black", "darkred", "blueviolet", "coral"]
+            var data = POINTSDATAGOESHERE
+            var svg = d3.select("#chart").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+            
+            // var points = svg.append('circle').data(data)
+            svg.selectAll('circle').data(data)
+                .enter()
+                .append('circle')
+                .attr('cx', function(d) { return d.x * zoom; })
+                .attr('cy', function(d) { return d.y * zoom; })
+                .attr('fill', function(d) { return colors[d.cluster]; })
+                .attr('r', zoom / 2)
+        })();
+        </script>
+    </body>
+</html>
