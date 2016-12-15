@@ -33,23 +33,21 @@ function Featurize-String {
     param (
         [Parameter(Mandatory=$true)][string]$String,
         $MaxDimensions = 1000,
-        $NGramMatch = '^\w+$'
+        $NGramMatch = '^\w+$',
+        $n = 2
     )
     $MD5 = New-Object System.Security.Cryptography.MD5CryptoServiceProvider
     $UTF8 = New-Object System.Text.UTF8Encoding
-    $NGrams = Get-NGrams $String |
+    $NGrams = Get-NGrams $String -n $n |
         Where-Object { $PSItem -match $NGramMatch }
-    $VectorHash = @(0) * $MaxDimensions
+    $VectorArray = @(0) * $MaxDimensions
     $NGrams | ForEach-Object {
         $StringHash =  $MD5.ComputeHash($UTF8.GetBytes($PSItem.ToLower()))
         # NOTE: Uint64 only holds the least-significant 64 bits of the md5 hash, but we're limiting dimensions so should be ok
         $Key = [System.BitConverter]::ToUInt64($StringHash, 8) % $MaxDimensions
-        $VectorHash[$Key] += 1 / $NGrams.Count
+        $VectorArray[$Key] += 1 / $NGrams.Count
     }
-    # $VectorHash.GetEnumerator() | ForEach-Object {
-    #     @($PSItem.Key, $PSItem.Value)
-    # }
-    @(,$VectorHash)
+    @(,$VectorArray)
 }
 
 # Load Accord.MachineLearning dll
@@ -77,7 +75,7 @@ for ($i = 0; $i -lt $Vectors.Count; $i++) {
             Cluster = $Labels[$i]
             Text = $Json[$i].data.body
         }
-    ))
+    )) | Out-Null
 }
 
 for ($i = 0; $i -lt $Clusters; $i++) { 
