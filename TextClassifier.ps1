@@ -1,3 +1,8 @@
+# Attempting to cluster/classify text posts
+param (
+    $AccordPath = "C:\tools\Accord.NET-3.3.0-libsonly\Release\net45",
+    $Clusters = 4
+)
 
 <#
 .Synopsis
@@ -45,4 +50,20 @@ function Featurize-String {
         @($PSItem.Key, $PSItem.Value)
     }
 }
+
+# Load Accord.MachineLearning dll
+$MlDllPath = "$AccordPath\Accord.MachineLearning.dll"
+Add-Type -Path $MlDllPath
+
+$KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList $Clusters
+
+$Json = Get-Content C:\temp\kmeanstest.json |
+    ConvertFrom-Json
+
+# $Json | select id, @{ Name = "body"; Expression = { $PSItem.data.body } }
+
+$Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
+
+# This throws an error, but I think it's erroring out on converting data to output to Powershell; I think the functionality is working
+$KMeans.Learn($Vectors)
 
