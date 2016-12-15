@@ -39,16 +39,17 @@ function Featurize-String {
     $UTF8 = New-Object System.Text.UTF8Encoding
     $NGrams = Get-NGrams $String |
         Where-Object { $PSItem -match $NGramMatch }
-    $VectorHash = @{}
+    $VectorHash = @(0) * $MaxDimensions
     $NGrams | ForEach-Object {
-        $StringHash =  $MD5.ComputeHash($UTF8.GetBytes($PSItem))
+        $StringHash =  $MD5.ComputeHash($UTF8.GetBytes($PSItem.ToLower()))
         # NOTE: Uint64 only holds the least-significant 64 bits of the md5 hash, but we're limiting dimensions so should be ok
         $Key = [System.BitConverter]::ToUInt64($StringHash, 8) % $MaxDimensions
         $VectorHash[$Key] += 1 / $NGrams.Count
     }
-    $VectorHash.GetEnumerator() | ForEach-Object {
-        @($PSItem.Key, $PSItem.Value)
-    }
+    # $VectorHash.GetEnumerator() | ForEach-Object {
+    #     @($PSItem.Key, $PSItem.Value)
+    # }
+    @(,$VectorHash)
 }
 
 # Load Accord.MachineLearning dll
@@ -67,3 +68,21 @@ $Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
 # This throws an error, but I think it's erroring out on converting data to output to Powershell; I think the functionality is working
 $KMeans.Learn($Vectors)
 
+$Labels = $KMeans.Clusters.Decide($Vectors)
+
+$Out = [System.Collections.ArrayList]@()
+for ($i = 0; $i -lt $Vectors.Count; $i++) { 
+    $Out.Add((
+        New-Object psobject -Property @{
+            Cluster = $Labels[$i]
+            Text = $Json[$i].data.body
+        }
+    ))
+}
+
+for ($i = 0; $i -lt $Clusters; $i++) { 
+    "`n=== CLUSTER $i ===`n"
+    $Out |
+        Where-Object { $PSItem.Cluster -eq $i } |
+        Select-Object -ExpandProperty Text
+}
