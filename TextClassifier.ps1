@@ -50,6 +50,38 @@ function Featurize-String {
     @(,$VectorArray)
 }
 
+function Get-TfIdf {
+    param (
+        [Parameter(Mandatory=$true)][string[]]$String,
+        $MaxDimensions = 1000,
+        $NGramMatch = '^\w+$',
+        $n = 2
+    )
+    $NumDocsWithTerm = @(0) * $MaxDimensions
+    $IDFt = @(0) * $MaxDimensions
+    $VectorList = [System.Collections.ArrayList]@()
+    $String | ForEach-Object {
+        $Vector = Featurize-String $PSItem -MaxDimensions $MaxDimensions -NGramMatch $NGramMatch -n $n
+        $VectorList.Add($Vector) | Out-Null
+        for ($i = 0; $i -lt $MaxDimensions; $i++) {
+            if ($Vector[$i]) { $NumDocsWithTerm[$i] ++ }
+        }
+    }
+    $TotalDocs = $VectorList.Count
+    for ($i = 0; $i -lt $MaxDimensions; $i++) {
+        if ($NumDocsWithTerm[$i]) {
+            $IDFt[$i] = [Math]::Log($TotalDocs / $NumDocsWithTerm[$i])
+        }
+    }
+    $VectorList | ForEach-Object {
+        $Out = @(0) * $MaxDimensions
+        for ($i = 0; $i -lt $MaxDimensions; $i++) {
+            $Out[$i] = $PSItem[$i] * $IDFt[$i]
+        }
+        @(,$Out)
+    }
+}
+
 # Load Accord.MachineLearning dll
 $MlDllPath = "$AccordPath\Accord.MachineLearning.dll"
 Add-Type -Path $MlDllPath
@@ -61,7 +93,8 @@ $Json = Get-Content C:\temp\kmeanstest.json |
 
 # $Json | select id, @{ Name = "body"; Expression = { $PSItem.data.body } }
 
-$Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
+#$Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
+$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.body })
 
 # This throws an error, but I think it's erroring out on converting data to output to Powershell; I think the functionality is working
 $KMeans.Learn($Vectors)
