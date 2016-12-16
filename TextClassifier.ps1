@@ -82,6 +82,33 @@ function Get-TfIdf {
     }
 }
 
+# Adapted from Richard Siddaway https://richardspowershellblog.wordpress.com/2011/07/12/standard-deviation/
+function Get-StandardDeviation {
+    [CmdletBinding()]
+    param (
+      [double[]]$numbers
+    )
+
+    $avg = $numbers |
+        # Don't count null values
+        Where-Object { $PSItem } |
+        Measure-Object -Average |
+        Select-Object Count, Average
+    Write-Host $avg.Count
+    $popdev = 0
+
+    foreach ($number in $numbers){
+      $popdev +=  [math]::pow(($number - $avg.Average), 2)
+    }
+
+    $sd = [math]::sqrt($popdev / ($avg.Count-1))
+
+    New-Object psobject -Property @{
+        StandardDeviation = $sd
+        Mean = $avg.Average
+    }
+}
+
 # Load Accord.MachineLearning dll
 $MlDllPath = "$AccordPath\Accord.MachineLearning.dll"
 Add-Type -Path $MlDllPath
