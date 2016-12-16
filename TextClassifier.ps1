@@ -40,7 +40,7 @@ function Featurize-String {
     $UTF8 = New-Object System.Text.UTF8Encoding
     $NGrams = Get-NGrams $String -n $n |
         Where-Object { $PSItem -match $NGramMatch }
-    $VectorArray = @(0) * $MaxDimensions
+    $VectorArray = @($null) * $MaxDimensions
     $NGrams | ForEach-Object {
         $StringHash =  $MD5.ComputeHash($UTF8.GetBytes($PSItem.ToLower()))
         # NOTE: Uint64 only holds the least-significant 64 bits of the md5 hash, but we're limiting dimensions so should be ok
@@ -94,7 +94,7 @@ $Json = Get-Content -Encoding UTF8 C:\temp\kmeanstest.json |
 #$Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
 #$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.body })
 $Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.link_title })
-Write-Host Yo
+
 $KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList $Clusters
 
 # This throws an error, but I think it's erroring out on converting data to output to Powershell; I think the functionality is working
