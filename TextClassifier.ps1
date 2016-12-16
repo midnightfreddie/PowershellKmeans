@@ -40,7 +40,7 @@ function Featurize-String {
     $UTF8 = New-Object System.Text.UTF8Encoding
     $NGrams = Get-NGrams $String -n $n |
         Where-Object { $PSItem -match $NGramMatch }
-    $VectorArray = @($null) * $MaxDimensions
+    $VectorArray = @(0) * $MaxDimensions
     $NGrams | ForEach-Object {
         $StringHash =  $MD5.ComputeHash($UTF8.GetBytes($PSItem.ToLower()))
         # NOTE: Uint64 only holds the least-significant 64 bits of the md5 hash, but we're limiting dimensions so should be ok
@@ -90,8 +90,6 @@ function Get-StandardDeviation {
     )
 
     $avg = $numbers |
-        # Don't count null values
-        Where-Object { $PSItem } |
         Measure-Object -Average |
         Select-Object Count, Average
 
@@ -116,9 +114,9 @@ function Normalize-Dimensions {
     )
     for ($i = 0; $i -lt $Vectors[0].Count; $i++) { 
         $MeanAndStdDev = Get-StandardDeviation ( $Vectors | ForEach-Object { $PSItem[$i] } )
-        $Vectors | ForEach-Object {
-            # if not null, adjust so dimension data set has mean of 0 and standard deviation of 1
-            if ($PSItem[$i]) {
+        if ($MeanAndStdDev.StandardDeviation -ne 0) {
+            $Vectors | ForEach-Object {
+                # adjust so dimension data set has mean of 0 and standard deviation of 1
                 $PSItem[$i] = ( $PSItem[$i] - $MeanAndStdDev.Mean ) / $MeanAndStdDev.StandardDeviation
             }
         }
@@ -137,8 +135,10 @@ $Json = Get-Content -Encoding UTF8 C:\temp\kmeanstest.json |
 
 #$Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
 #$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.body })
+
+#$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.body })
 $Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.link_title })
-$NormalVectors = Normalize-Dimensions $Vectors
+$NormalVectors = (Normalize-Dimensions -Vectors $Vectors)
 
 $KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList $Clusters
 
