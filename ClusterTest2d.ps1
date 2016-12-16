@@ -57,6 +57,50 @@ function Get-GaussianClusteredPoints {
     }
 }
 
+# Adapted from Richard Siddaway https://richardspowershellblog.wordpress.com/2011/07/12/standard-deviation/
+function Get-StandardDeviation {
+    [CmdletBinding()]
+    param (
+      [double[]]$numbers
+    )
+
+    $avg = $numbers |
+        # Don't count null values
+        Where-Object { $PSItem } |
+        Measure-Object -Average |
+        Select-Object Count, Average
+
+    $popdev = 0
+
+    foreach ($number in $numbers){
+      $popdev +=  [math]::pow(($number - $avg.Average), 2)
+    }
+
+    $sd = [math]::sqrt($popdev / ($avg.Count-1))
+
+    New-Object psobject -Property @{
+        StandardDeviation = $sd
+        Mean = $avg.Average
+    }
+}
+
+# $Vectors is 2d array. Assumes all elements have same # of elements (rectangular array)
+function Normalize-Dimensions {
+    param (
+        [Parameter(Mandatory=$true)]$Vectors
+    )
+    for ($i = 0; $i -lt $Vectors[0].Count; $i++) { 
+        $MeanAndStdDev = Get-StandardDeviation ( $Vectors | ForEach-Object { $PSItem[$i] } )
+        $Vectors | ForEach-Object {
+            # if not null, adjust so dimension data set has mean of 0 and standard deviation of 1
+            if ($PSItem[$i]) {
+                $PSItem[$i] = ( $PSItem[$i] - $MeanAndStdDev.Mean ) / $MeanAndStdDev.StandardDeviation
+            }
+        }
+    }
+    Write-Output @(,$Vectors)
+}
+
 # Load Accord.MachineLearning dll
 $MlDllPath = "$AccordPath\Accord.MachineLearning.dll"
 Add-Type -Path $MlDllPath
@@ -65,7 +109,8 @@ $KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList $Clusters
 
 #$Points = Get-RandomPoints
 #$Points = Get-ClusteredPoints
-$Points = Get-GaussianClusteredPoints
+#$Points = Get-GaussianClusteredPoints
+$Points = Normalize-Dimensions (Get-GaussianClusteredPoints)
 
 # This throws an error, but I think it's erroring out on converting data to output to Powershell; I think the functionality is working
 $KMeans.Learn($Points)
@@ -76,8 +121,8 @@ $Out = [System.Collections.ArrayList]@()
 for ($i = 0; $i -lt $Points.Count; $i++) {
     $Out.Add((
         New-Object psobject -Property ([ordered]@{
-                x = $Points[$i][0]
-                y = $Points[$i][1]
+                x = $Points[$i][0] * 0.2 * $PlotSize + $PlotSize / 2
+                y = $Points[$i][1] * 0.2 * $PlotSize + $PlotSize / 2
                 cluster = $Labels[$i]
             })
     )) | Out-Null
