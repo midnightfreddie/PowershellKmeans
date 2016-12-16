@@ -94,7 +94,7 @@ function Get-StandardDeviation {
         Where-Object { $PSItem } |
         Measure-Object -Average |
         Select-Object Count, Average
-    Write-Host $avg.Count
+
     $popdev = 0
 
     foreach ($number in $numbers){
@@ -109,6 +109,23 @@ function Get-StandardDeviation {
     }
 }
 
+# $Vectors is 2d array. Assumes all elements have same # of elements (rectangular array)
+function Normalize-Dimensions {
+    param (
+        [Parameter(Mandatory=$true)]$Vectors
+    )
+    for ($i = 0; $i -lt $Vectors[0].Count; $i++) { 
+        $MeanAndStdDev = Get-StandardDeviation ( $Vectors | ForEach-Object { $PSItem[$i] } )
+        $Vectors | ForEach-Object {
+            # if not null, adjust so dimension data set has mean of 0 and standard deviation of 1
+            if ($PSItem[$i]) {
+                $PSItem[$i] = ( $PSItem[$i] - $MeanAndStdDev.Mean ) / $MeanAndStdDev.StandardDeviation
+            }
+        }
+    }
+    Write-Output @(,$Vectors)
+}
+
 # Load Accord.MachineLearning dll
 $MlDllPath = "$AccordPath\Accord.MachineLearning.dll"
 Add-Type -Path $MlDllPath
@@ -121,11 +138,12 @@ $Json = Get-Content -Encoding UTF8 C:\temp\kmeanstest.json |
 #$Vectors = $Json | ForEach-Object { @(,(Featurize-String $PSItem.data.body)) }
 #$Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.body })
 $Vectors = Get-TfIdf ($Json | ForEach-Object { $PSItem.data.link_title })
+$NormalVectors = Normalize-Dimensions $Vectors
 
 $KMeans = New-Object Accord.MachineLearning.KMeans -ArgumentList $Clusters
 
 # This throws an error, but I think it's erroring out on converting data to output to Powershell; I think the functionality is working
-$KMeans.Learn($Vectors)
+$KMeans.Learn($NormalVectors)
 
 $Labels = $KMeans.Clusters.Decide($Vectors)
 
